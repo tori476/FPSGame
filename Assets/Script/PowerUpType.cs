@@ -13,7 +13,9 @@ public enum PowerUpType
 
     ExplosiveShot, // 魔法が着弾時に爆発
 
-    LifeSteal // ダメージの一部を吸収
+    LifeSteal, // ダメージの一部を吸収
+
+    Dash //ダッシュ
     // TODO: ここに新しい能力の種類を追加していく
 }
 

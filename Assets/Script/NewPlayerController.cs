@@ -62,6 +62,14 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     public float lifeStealRatio = 0.3f; // 吸収率 (例: 0.3f なら30%)
 
+    // ...
+    public bool canDash = false;
+    private float dashSpeed = 25f;
+    private float dashDuration = 0.15f;
+    private float dashCooldown = 3.0f;
+    private float lastDashTime = -99f;
+
+
     // 二段ジャンプ用の状態変数
     private bool hasDoubleJumped = false;
 
@@ -323,6 +331,33 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (photonView.IsMine && crosshairImage != null)
         {
             crosshairImage.gameObject.SetActive(false);
+        }
+    }
+
+    public void OnDash(InputAction.CallbackContext value)
+    {
+        if (!photonView.IsMine || !value.performed) return;
+        if (canDash && Time.time > lastDashTime + dashCooldown)
+        {
+            lastDashTime = Time.time;
+            StartCoroutine(PerformDash());
+        }
+    }
+
+    private IEnumerator PerformDash()
+    {
+        float startTime = Time.time;
+        Vector3 dashDirection = (transform.forward * moveInput.y + transform.right * moveInput.x).normalized;
+        // 入力がない場合は前方へダッシュ
+        if (dashDirection.sqrMagnitude < 0.1f)
+        {
+            dashDirection = transform.forward;
+        }
+
+        while (Time.time < startTime + dashDuration)
+        {
+            characterController.Move(dashDirection * dashSpeed * Time.deltaTime);
+            yield return null;
         }
     }
 }
