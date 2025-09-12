@@ -2,6 +2,7 @@ using UnityEngine;
 using Photon.Pun;
 using Photon.Realtime;
 using System.Collections.Generic;
+using System.Collections;
 
 [RequireComponent(typeof(PhotonView))]
 public class NetworkGameManager : MonoBehaviourPunCallbacks
@@ -11,6 +12,13 @@ public class NetworkGameManager : MonoBehaviourPunCallbacks
 
     [Header("ゲーム設定")]
     public int winningScore = 5;
+
+    [Header("スローモーション設定")]
+    [SerializeField, Tooltip("スローモーションの速度（1が通常速度）")]
+    private float slowMotionScale = 0.5f;
+    [SerializeField, Tooltip("スローモーションの継続時間（秒）")]
+    private float slowMotionDuration = 2.0f;
+
 
     // スポーン地点の情報をNetworkManagerからここに移動
     [Header("リスポーン地点")]
@@ -31,6 +39,13 @@ public class NetworkGameManager : MonoBehaviourPunCallbacks
         {
             InitializeScoreForPlayer(newPlayer);
         }
+    }
+
+    public override void OnEnable()
+    {
+        base.OnEnable(); // ▼ 追加 ▼ 親クラスのOnEnableを呼び出し、Photonのコールバック登録を確実に行う
+        Time.timeScale = 1.0f;
+        Time.fixedDeltaTime = 0.02f; // 物理演算の周期も元に戻す
     }
 
     private void InitializeScoreForPlayer(Player player)
@@ -58,12 +73,38 @@ public class NetworkGameManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            if (PowerUpManager.Instance != null)
-            {
-                PowerUpManager.Instance.StartPowerUpSelectionProcess(victim, attacker);
-            }
+            StartCoroutine(DeathSequenceCoroutine(victim, attacker));
         }
     }
+
+    //死亡から能力選択までのシーケンスを管理するコルーチン
+    private IEnumerator DeathSequenceCoroutine(Player victim, Player attacker)
+    {
+        // 1. 全員にスローモーション開始を通知
+        photonView.RPC(nameof(Rpc_SetTimeScale), RpcTarget.All, slowMotionScale);
+
+        // 2. 指定された時間待機（この待機時間もスローになる）
+        yield return new WaitForSeconds(slowMotionDuration);
+
+        // 3. 全員に通常速度に戻すよう通知
+        photonView.RPC(nameof(Rpc_SetTimeScale), RpcTarget.All, 1.0f);
+
+        // 4. 能力選択プロセスを開始
+        if (PowerUpManager.Instance != null)
+        {
+            PowerUpManager.Instance.StartPowerUpSelectionProcess(victim, attacker);
+        }
+    }
+
+    //全クライアントのゲーム速度を変更するためのRPC
+    [PunRPC]
+    private void Rpc_SetTimeScale(float scale)
+    {
+        Time.timeScale = scale;
+        // 物理演算のフレームレートも時間のスケールに合わせることで、物理挙動の安定性を保つ
+        Time.fixedDeltaTime = 0.02f * Time.timeScale;
+    }
+
 
     // --- ▼ リスポーン処理をここに追加 ▼ ---
     public void RespawnPlayers()
