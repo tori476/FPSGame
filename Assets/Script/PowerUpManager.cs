@@ -43,10 +43,28 @@ public class PowerUpManager : MonoBehaviour
         p1 = PhotonNetwork.PlayerList[0];
         p2 = (PhotonNetwork.PlayerList.Length > 1) ? PhotonNetwork.PlayerList[1] : null;
 
+        // ★★★ プレイヤーが既に取得している能力のリストを取得 ★★★
+        List<PowerUpType> p1Acquired = new List<PowerUpType>();
+        List<PowerUpType> p2Acquired = new List<PowerUpType>();
+
+        GameObject p1_go = FindPlayerObject(p1);
+        if (p1_go != null)
+        {
+            p1Acquired = p1_go.GetComponent<NewPlayerController>().acquiredPowerUps;
+        }
+        if (p2 != null)
+        {
+            GameObject p2_go = FindPlayerObject(p2);
+            if (p2_go != null)
+            {
+                p2Acquired = p2_go.GetComponent<NewPlayerController>().acquiredPowerUps;
+            }
+        }
+
 
         // ★★★ レアリティに基づいて抽選し、提示する能力を決定 ★★★
-        p1OptionIndices = GetPowerUpsByRarity(3);
-        p2OptionIndices = GetPowerUpsByRarity(3);
+        p1OptionIndices = GetPowerUpsByRarity(3, p1Acquired);
+        p2OptionIndices = GetPowerUpsByRarity(3, p2Acquired);
 
         // 念のため、抽選結果がnullでないかチェック
         if (p1OptionIndices == null || p2OptionIndices == null)
@@ -58,12 +76,14 @@ public class PowerUpManager : MonoBehaviour
         photonView.RPC(nameof(Rpc_ShowChoiceUI), RpcTarget.All, p1OptionIndices, p2OptionIndices, victim);
     }
 
-    private int[] GetPowerUpsByRarity(int count) //レアリティー
+    private int[] GetPowerUpsByRarity(int count, List<PowerUpType> excludeList) //レアリティー
     {
         if (allPowerUps == null || allPowerUps.Count == 0) return null;
 
         List<int> chosenIndices = new List<int>();
-        List<int> availableIndices = Enumerable.Range(0, allPowerUps.Count).ToList();
+        List<int> availableIndices = Enumerable.Range(0, allPowerUps.Count)
+                                             .Where(index => !excludeList.Contains(allPowerUps[index].powerUpType))
+                                             .ToList();
 
         for (int i = 0; i < count; i++)
         {
@@ -275,6 +295,11 @@ public class PowerUpManager : MonoBehaviour
         if (player == null || data == null) return;
         NewPlayerController pc = player.GetComponent<NewPlayerController>();
         if (pc == null) return;
+
+        if (!pc.acquiredPowerUps.Contains(data.powerUpType))
+        {
+            pc.acquiredPowerUps.Add(data.powerUpType);
+        }
 
         switch (data.powerUpType)
         {

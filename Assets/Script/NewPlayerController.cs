@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine.UI;
 
 [RequireComponent(typeof(CharacterController))]
@@ -50,6 +51,8 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
     public int bonusDamage = 0;
 
     [Header("取得した能力")]
+
+    public List<PowerUpType> acquiredPowerUps = new List<PowerUpType>(); //取得したかとある能力のリスト
     public bool canDoubleJump = false;    // 二段ジャンプがアンロックされたか
     public bool projectileCanBounce = false; // 弾が反射するか
 
