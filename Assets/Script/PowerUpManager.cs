@@ -296,6 +296,9 @@ public class PowerUpManager : MonoBehaviour
                 // data.value を吸収率として設定 (例: 0.3)
                 pc.lifeStealRatio += data.value;
                 break;
+            case PowerUpType.Dash:
+                pc.canDash = true;
+                break;
         }
     }
     #endregion
