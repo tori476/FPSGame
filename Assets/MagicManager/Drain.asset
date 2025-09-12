@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aabe37d5ebe14b69988647cd5d61e88, type: 3}
+  m_Name: Drain
+  m_EditorClassIdentifier: Assembly-CSharp::PowerUpData
+  powerUpName: "\u30C9\u30EC\u30A4\u30F3"
+  description: "\u5F3E\u304C\u5F53\u305F\u3063\u305F\u76F8\u624B\u306E\u4F53\u529B\u306E\u4E00\u90E8\u3092\u5438\u53CE\u3059\u308B"
+  powerUpType: 8
+  value: 0.5
+  rarity: 1
+  icon: {fileID: 0}

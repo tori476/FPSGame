@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aabe37d5ebe14b69988647cd5d61e88, type: 3}
+  m_Name: Explosion
+  m_EditorClassIdentifier: Assembly-CSharp::PowerUpData
+  powerUpName: "\u30A8\u30AF\u30B9\u30D7\u30EC\u30C3\u30B7\u30E7\u30F3"
+  description: "\u5F3E\u304C\u7740\u5F3E\u3057\u305F\u3089\u7206\u767A\u3059\u308B"
+  powerUpType: 7
+  value: 2
+  rarity: 2
+  icon: {fileID: 0}

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aabe37d5ebe14b69988647cd5d61e88, type: 3}
+  m_Name: PowerUp_MagicDamage
+  m_EditorClassIdentifier: Assembly-CSharp::PowerUpData
+  powerUpName: "\u30D1\u30EF\u30FC"
+  description: "\u9B54\u6CD5\u306E\u5F3E\u306E\u5A01\u529B\u304C10\u5897\u52A0\u3059\u308B"
+  icon: {fileID: 0}
+  powerUpType: 1
+  value: 10
