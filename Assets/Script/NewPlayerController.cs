@@ -78,7 +78,11 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     // 射撃のクールダウンを追加（重複発射防止）
     private float lastFireTime = 0f;
-    private float fireRate = 0.3f; // 秒間の最大発射間隔
+    private float fireRate = 0.5f; // 秒間の最大発射間隔
+
+    //  射撃ボタンが押されているかを保持するフラグを追加
+    private bool isFiring = false;
+
 
     // ネットワーク同期用の変数
     private float networkRotationX = 0f;
@@ -208,23 +212,16 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     public void OnFire(InputAction.CallbackContext value)
     {
-        if (!photonView.IsMine || !value.performed || !canFire) return;
+        if (!photonView.IsMine) return;
 
-        // クールダウンチェック（連続射撃防止）
-        if (Time.time - lastFireTime < fireRate) return;
-
-        lastFireTime = Time.time;
-
-        // 弾の生成位置と回転を計算（カメラの位置ではなく、プレイヤーの前方から）
-        Vector3 spawnPosition = CalculateProjectileSpawnPosition();
-        Quaternion spawnRotation = CalculateProjectileSpawnRotation();
-
-        // ネットワークオブジェクトとして魔法を生成
-        GameObject projectile = PhotonNetwork.Instantiate(
-            magicPrefab.name,
-            spawnPosition,
-            spawnRotation
-        );
+        if (value.performed) // ボタンが押された時
+        {
+            isFiring = true;
+        }
+        else if (value.canceled) // ボタンが離された時
+        {
+            isFiring = false;
+        }
 
 
     }
@@ -302,8 +299,28 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
         transform.rotation *= Quaternion.Euler(0, lookInput.x * lookSpeed, 0);
 
-
+        HandleFiring();
     }
+
+    private void HandleFiring()
+    {
+        // isFiringフラグがtrue、射撃可能状態、かつクールダウンが終わっている場合に実行
+        if (isFiring && canFire && Time.time - lastFireTime >= fireRate)
+        {
+            lastFireTime = Time.time;
+
+            Vector3 spawnPosition = CalculateProjectileSpawnPosition();
+            Quaternion spawnRotation = CalculateProjectileSpawnRotation();
+
+            // ネットワークオブジェクトとして魔法を生成
+            PhotonNetwork.Instantiate(
+                magicPrefab.name,
+                spawnPosition,
+                spawnRotation
+            );
+        }
+    }
+
 
     public void DisableFiringFor(float seconds)
     {
