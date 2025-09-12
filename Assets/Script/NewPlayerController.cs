@@ -223,7 +223,7 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
             spawnRotation
         );
 
-        Debug.Log($"{photonView.Owner.NickName} が魔法を発射しました - 位置: {spawnPosition}");
+
     }
 
     // 弾の生成位置を計算（カメラに依存しない）
