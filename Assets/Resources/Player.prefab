@@ -417,6 +417,7 @@ MonoBehaviour:
   groundCheckDistance: 0.2
   playerCamera: {fileID: 9091775203686458195}
   bonusDamage: 0
+  acquiredPowerUps: 
   canDoubleJump: 0
   projectileCanBounce: 0
   hasExplosiveShot: 0

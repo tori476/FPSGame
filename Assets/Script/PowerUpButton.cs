@@ -1,9 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(Button))]
-public class PowerUpButton : MonoBehaviour
+public class PowerUpButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     // Inspectorで設定するUI要素
     [SerializeField] private TextMeshProUGUI nameText;
@@ -12,6 +13,8 @@ public class PowerUpButton : MonoBehaviour
     [SerializeField] public Button button; // PowerUpManagerからアクセスするためpublicに
 
     [SerializeField] private Image backgroundImage; // 背景画像への参照を追加
+
+    private PowerUpData powerUpData; //能力データを保持する変数
 
     // ゲーム起動時とUnityエディタでの変更時に、参照が正しいか自動で検証・修復する
     private void OnValidate()
@@ -41,6 +44,8 @@ public class PowerUpButton : MonoBehaviour
             return;
         }
 
+        powerUpData = data;
+
         if (nameText != null)
         {
             nameText.text = data.powerUpName;
@@ -52,10 +57,6 @@ public class PowerUpButton : MonoBehaviour
             Debug.LogError($"【エラー】{gameObject.name} の nameText が設定されていません！");
         }
 
-        if (descriptionText != null)
-        {
-            descriptionText.text = data.description;
-        }
 
         if (backgroundImage != null)
         {
@@ -78,5 +79,18 @@ public class PowerUpButton : MonoBehaviour
             default:
                 return Color.grey;
         }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData) //マウスカーソルが乗った時
+    {
+        if (powerUpData != null)
+        {
+            PowerUpManager.Instance.ShowDescription(powerUpData.description);
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData) //マウスカーソルが外れた時
+    {
+        PowerUpManager.Instance.HideDescription();
     }
 }

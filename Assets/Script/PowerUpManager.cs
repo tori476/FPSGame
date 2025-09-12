@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using Photon.Pun;
 using Photon.Realtime;
+using TMPro;
 
 [RequireComponent(typeof(PhotonView))]
 public class PowerUpManager : MonoBehaviour
@@ -15,6 +16,8 @@ public class PowerUpManager : MonoBehaviour
     public GameObject powerUpCanvas;
     public GameObject player1ChoicePanel, player2ChoicePanel;
     public PowerUpButton[] player1Buttons, player2Buttons;
+
+    [SerializeField] private TextMeshProUGUI descriptionText; //説明文UI
 
     [Header("能力リスト")]
     public List<PowerUpData> allPowerUps;
@@ -29,6 +32,28 @@ public class PowerUpManager : MonoBehaviour
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
         photonView = GetComponent<PhotonView>();
+
+        if (descriptionText != null)
+        {
+            descriptionText.gameObject.SetActive(false);
+        }
+    }
+
+    public void ShowDescription(string description) //説明文を表示
+    {
+        if (descriptionText != null)
+        {
+            descriptionText.text = description;
+            descriptionText.gameObject.SetActive(true);
+        }
+    }
+
+    public void HideDescription()   //説明文を非表示
+    {
+        if (descriptionText != null)
+        {
+            descriptionText.gameObject.SetActive(false);
+        }
     }
 
     // NetworkGameManagerから呼ばれる開始関数（マスタークライアントのみ）
