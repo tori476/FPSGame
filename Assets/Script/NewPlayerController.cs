@@ -103,11 +103,17 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private float networkRotationX = 0f;
     private float networkRotationY = 0f;
 
+    public GameObject firstPersonModel; // インスペクターで一人称モデルを割り当てる
+    public GameObject thirdPersonModel; // インスペクターで三人称モデルを割り当てる
+
+    private Animator animator;
+
 
     void Awake()
     {
         characterController = GetComponent<CharacterController>();
         photonView = GetComponent<PhotonView>();
+        animator = GetComponentInChildren<Animator>(); // Animatorコンポーネントを取得
 
         // 自分のプレイヤーかどうかを判定
         if (photonView.IsMine)
@@ -164,9 +170,40 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (photonView.IsMine)
         {
             ToggleCursor(true);
+
+            if (photonView.IsMine)
+            {
+                // 自分自身のキャラクターの場合
+                // 一人称モデルを表示し、三人称モデルを非表示（または三人称カメラから見えないレイヤーに）
+                SetLayerRecursively(firstPersonModel, LayerMask.NameToLayer("FP_View"));
+                SetLayerRecursively(thirdPersonModel, LayerMask.NameToLayer("TP_View"));
+                // ※三人称モデルは他の人から見える必要があるので、ここでは非表示にしない
+
+                // カメラの設定で三人称モデルが見えないようにする
+                playerCamera.cullingMask &= ~(1 << LayerMask.NameToLayer("TP_View"));
+            }
+            else
+            {
+                // 他のプレイヤーのキャラクターの場合
+                // 一人称モデルを非表示にし、三人称モデルを表示
+                SetLayerRecursively(firstPersonModel, LayerMask.NameToLayer("Default")); // or 非表示
+                firstPersonModel.SetActive(false);
+                SetLayerRecursively(thirdPersonModel, LayerMask.NameToLayer("TP_View"));
+            }
         }
 
 
+    }
+
+    // 子オブジェクトも含めてレイヤーを再帰的に設定するヘルパー関数
+    void SetLayerRecursively(GameObject obj, int newLayer)
+    {
+        if (obj == null) return;
+        obj.layer = newLayer;
+        foreach (Transform child in obj.transform)
+        {
+            SetLayerRecursively(child.gameObject, newLayer);
+        }
     }
 
     public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
@@ -329,6 +366,14 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
         playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
         transform.rotation *= Quaternion.Euler(0, lookInput.x * lookSpeed, 0);
+
+        if (photonView.IsMine)
+        {
+            // Animatorに現在の移動速度や状態を渡す
+            float speed = new Vector2(characterController.velocity.x, characterController.velocity.z).magnitude;
+            animator.SetFloat("Speed", speed);
+            animator.SetBool("IsGrounded", isGrounded);
+        }
 
         HandleFiring();
     }
