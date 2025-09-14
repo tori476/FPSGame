@@ -55,6 +55,7 @@ MonoBehaviour:
   - Rpc_ReceiveChoice
   - Rpc_ShowPowerUpUI
   - Rpc_SetTimeScale
+  - Rpc_ShowDamageEffect
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

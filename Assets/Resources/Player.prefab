@@ -50,6 +50,7 @@ GameObject:
   - component: {fileID: 9130055475757860934}
   - component: {fileID: 1608585520485197085}
   - component: {fileID: -5451350329539944342}
+  - component: {fileID: 598743115541616329}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -464,6 +465,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
+  damageEffectController: {fileID: 598743115541616329}
 --- !u!114 &-5451350329539944342
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -497,6 +499,19 @@ MonoBehaviour:
     InterpolateOption: 0
     InterpolateMoveTowardsSpeed: 1
     InterpolateLerpSpeed: 0
+--- !u!114 &598743115541616329
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2353750469887428215}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 873fa53bc2e7041b98319780032caeae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DamageEffectController
+  fadeDuration: 0.5
 --- !u!1 &5010993993944554565
 GameObject:
   m_ObjectHideFlags: 0
