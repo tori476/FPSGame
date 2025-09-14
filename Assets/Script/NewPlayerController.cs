@@ -4,6 +4,7 @@ using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using UnityEngine.Animations.Rigging;
 
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PhotonView))]
@@ -86,6 +87,17 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
     //  射撃ボタンが押されているかを保持するフラグを追加
     private bool isFiring = false;
 
+    [Header("IK設定")]
+    public Transform aimTarget; // インスペクターで IK_Rig/AimTarget を設定
+    public float aimDistance = 10f; // 視線のターゲットをカメラからどれだけ前に置くか
+
+    // Rig Builder コンポーネントへの参照
+    private RigBuilder rigBuilder;
+
+    // Rig コンポーネントへの参照（ウェイトを操作するため）
+    private Rig ikRig;
+
+
 
     // ネットワーク同期用の変数
     private float networkRotationX = 0f;
@@ -128,6 +140,22 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+        }
+
+        // Rig BuilderとRigコンポーネントを取得
+        rigBuilder = GetComponent<RigBuilder>();
+
+        // Rig Builderに登録されているRigを取得（今回は1つだけと仮定）
+        if (rigBuilder != null && rigBuilder.layers.Count > 0)
+        {
+            ikRig = rigBuilder.layers[0].rig;
+        }
+
+
+        // 自分のキャラクターでなければIKを無効にする
+        if (!photonView.IsMine)
+        {
+            if (rigBuilder != null) rigBuilder.enabled = false;
         }
     }
 
@@ -382,5 +410,26 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
             characterController.Move(dashDirection * dashSpeed * Time.deltaTime);
             yield return null;
         }
+    }
+
+    void LateUpdate()
+    {
+        if (!photonView.IsMine)
+        {
+            return;
+        }
+
+        // aimTargetの位置をカメラの前方 aimDistance の位置に更新する
+        if (aimTarget != null && playerCamera != null)
+        {
+            aimTarget.position = playerCamera.transform.position + playerCamera.transform.forward * aimDistance;
+        }
+
+        // 例：リロード中など、IKを無効にしたい場合
+        // if (isReloading) {
+        //     ikRig.weight = Mathf.Lerp(ikRig.weight, 0f, Time.deltaTime * 10f); // 滑らかにIKをOFF
+        // } else {
+        //     ikRig.weight = Mathf.Lerp(ikRig.weight, 1f, Time.deltaTime * 10f); // 滑らかにIKをON
+        // }
     }
 }
