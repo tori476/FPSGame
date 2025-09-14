@@ -7,6 +7,9 @@ using Photon.Realtime;
 public class Health : MonoBehaviour, IPunObservable // IPunObservableを追加
 {
     [SerializeField] private int maxHealth = 100;
+
+    [SerializeField] private DamageEffectController damageEffectController;
+
     private int currentHealth;
     private PhotonView photonView;
 
@@ -32,6 +35,8 @@ public class Health : MonoBehaviour, IPunObservable // IPunObservableを追加
         currentHealth -= damage;
         Debug.Log($"{gameObject.name} が {damage} ダメージを受けた！ 残りHP: {currentHealth}");
 
+        photonView.RPC("Rpc_ShowDamageEffect", photonView.Owner);
+
         // ★★★ ライフスティール処理（マスタークライアントのみ） ★★★
         GameObject attackerObject = FindPlayerObject(attacker);
         if (attackerObject != null)
@@ -48,6 +53,23 @@ public class Health : MonoBehaviour, IPunObservable // IPunObservableを追加
         {
             // NetworkGameManagerに死亡を通知
             NetworkGameManager.Instance.OnPlayerDied(photonView.Owner, attacker);
+        }
+    }
+
+    [PunRPC]
+    private void Rpc_ShowDamageEffect()
+    {
+        // このRPCはダメージを受けた本人にだけ送られるが、念のため自分のビューか確認
+        if (photonView.IsMine)
+        {
+            if (damageEffectController != null)
+            {
+                damageEffectController.PlayEffect();
+            }
+            else
+            {
+                Debug.LogWarning("DamageEffectControllerが設定されていません。");
+            }
         }
     }
 
