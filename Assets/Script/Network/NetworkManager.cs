@@ -25,7 +25,20 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         Debug.Log("サーバー接続成功！");
         Debug.Log("ルームを探しています...");
         // ランダムなルームに参加する。もし誰もいなければ、新しいルームを作成して参加する
-        PhotonNetwork.JoinRandomOrCreateRoom();
+        PhotonNetwork.JoinRandomRoom();
+    }
+
+    public override void OnJoinRandomFailed(short returnCode, string message)
+    {
+        Debug.Log("参加可能なルームが見つかりませんでした。新しいルームを作成します。");
+
+        // ルームのオプションを新しく設定する
+        RoomOptions roomOptions = new RoomOptions();
+        // このルームの最大プレイヤー数を2人に設定する
+        roomOptions.MaxPlayers = 2;
+
+        // 新しいルームを作成する。ルーム名はnullにするとサーバーが自動で割り当てる
+        PhotonNetwork.CreateRoom(null, roomOptions);
     }
 
     // サーバーへの接続が失敗した時に呼ばれる
@@ -40,15 +53,16 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         Debug.Log("ルーム参加成功！");
         Debug.Log("ルーム名: " + PhotonNetwork.CurrentRoom.Name);
         Debug.Log("プレイヤー数: " + PhotonNetwork.CurrentRoom.PlayerCount);
+        Debug.Log("このルームの最大人数: " + PhotonNetwork.CurrentRoom.MaxPlayers);
 
         // ★★★ここに、ルームに参加した後のプレイヤー生成処理などを追加していく★★★
         // プレイヤー数を元に、使用するスポーン地点を決定
         int playerIndex = PhotonNetwork.CurrentRoom.PlayerCount - 1;
-        Transform spawnPoint = spawnPoints[playerIndex % spawnPoints.Length]; // プレイヤー数に応じてスポーン地点を循環させる
 
         // プレイヤーをネットワークオブジェクトとして生成
         if (playerPrefab != null)
         {
+            Transform spawnPoint = spawnPoints[playerIndex];
             PhotonNetwork.Instantiate(playerPrefab.name, spawnPoint.position, spawnPoint.rotation);
             Debug.Log("プレイヤーを生成しました。");
         }
@@ -56,13 +70,5 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         {
             Debug.LogError("Player Prefabが設定されていません！");
         }
-    }
-
-    // ルームへの参加が失敗した時に呼ばれる
-    public override void OnJoinRandomFailed(short returnCode, string message)
-    {
-        Debug.Log("ランダムなルームへの参加に失敗しました。新しいルームを作成します。");
-        // 失敗した場合、自分で新しいルームを作成する
-        PhotonNetwork.CreateRoom(null, new RoomOptions());
     }
 }
