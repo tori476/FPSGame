@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aabe37d5ebe14b69988647cd5d61e88, type: 3}
+  m_Name: Horming
+  m_EditorClassIdentifier: Assembly-CSharp::PowerUpData
+  powerUpName: "\u30DB\u30FC\u30DF\u30F3\u30B0"
+  description: "\u5F3E\u304C\u3042\u308B\u7A0B\u5EA6\u8FFD\u5C3E\u3059\u308B\u3088\u3046\u306B\u306A\u308B"
+  powerUpType: 10
+  value: 2
+  rarity: 2
+  icon: {fileID: 0}

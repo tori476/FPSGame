@@ -16,6 +16,14 @@ public class MagicProjectile : MonoBehaviour
     private int bouncesRemaining = 0; // 残りの反射回数
     private float currentSpeed; // 現在の速度を保持
 
+    private Transform target; //追尾相手
+    private float homingStrength = 4f; // 追尾の強さ
+    private float homingSearchRadius = 20f; // 索敵範囲
+    private float homingActivationTime; // 追尾を開始する時間
+    private float homingDelay = 0.1f;   // 追尾開始までの遅延時間（秒）
+
+    private float maxHomingAngle = 90f; // この角度以上ターゲットが離れたら追尾をやめる
+
     private GameObject attacker;
     private int finalDamage;
     private bool isDestroyed = false; // 重複破壊を防ぐフラグ
@@ -61,10 +69,19 @@ public class MagicProjectile : MonoBehaviour
             return;
         }
 
+
+
         // 弾の所有者（撃った本人）だけが、弾を動かし、ダメージを計算する
         if (photonView.IsMine)
         {
             NewPlayerController ownerController = attacker.GetComponent<NewPlayerController>();
+
+            if (ownerController != null && ownerController.hasHomingProjectiles)
+            {
+                FindTarget();
+                homingActivationTime = Time.time + homingDelay;
+            }
+
             if (ownerController != null)
             {
                 finalDamage = baseDamage + ownerController.bonusDamage;
@@ -110,28 +127,35 @@ public class MagicProjectile : MonoBehaviour
         }
 
         NewPlayerController ownerController = attacker.GetComponent<NewPlayerController>();
-        if (ownerController != null && ownerController.hasExplosiveShot)
-        {
-            // 爆発エフェクトの生成とダメージ処理を全クライアントに通知
-            photonView.RPC("Rpc_Explode", RpcTarget.All, transform.position);
-            SafeDestroy();
-            return; // 通常のダメージ処理は行わずに終了
-        }
 
         // 相手のHealthコンポーネントを探す
         Health targetHealth = collision.gameObject.GetComponent<Health>();
         if (targetHealth != null)
         {
-            // ダメージ処理を依頼
-            targetHealth.TakeDamage(finalDamage, photonView.Owner);
-            SafeDestroy();
-            return;
+            if (ownerController != null && ownerController.hasExplosiveShot)
+            {
+                // 爆発エフェクトの生成とダメージ処理を全クライアントに通知
+                photonView.RPC("Rpc_Explode", RpcTarget.All, transform.position);
+            }
+            else
+            {
+                // ダメージ処理を依頼
+                targetHealth.TakeDamage(finalDamage, photonView.Owner);
+                SafeDestroy();
+                return;
+            }
         }
 
         // 反射回数が残っている場合
         if (bouncesRemaining > 0)
         {
             bouncesRemaining--;
+
+            if (ownerController != null && ownerController.hasExplosiveShot)
+            {
+                // 爆発エフェクトの生成とダメージ処理を全クライアントに通知
+                photonView.RPC("Rpc_Explode", RpcTarget.All, transform.position);
+            }
 
             // 反射の計算
             Vector3 normal = collision.contacts[0].normal;
@@ -172,6 +196,11 @@ public class MagicProjectile : MonoBehaviour
         // 反射回数が残っていない場合
         else
         {
+            if (ownerController != null && ownerController.hasExplosiveShot)
+            {
+                // 爆発エフェクトの生成とダメージ処理を全クライアントに通知
+                photonView.RPC("Rpc_Explode", RpcTarget.All, transform.position);
+            }
             SafeDestroy();
         }
     }
@@ -220,6 +249,25 @@ public class MagicProjectile : MonoBehaviour
         StopAllCoroutines();
     }
 
+    private void FindTarget()
+    {
+        float closestDistance = homingSearchRadius;
+        NewPlayerController[] allPlayers = FindObjectsByType<NewPlayerController>(FindObjectsSortMode.None);
+
+        foreach (var player in allPlayers)
+        {
+            // 自分自身はターゲットにしない
+            if (player.gameObject == attacker) continue;
+
+            float distance = Vector3.Distance(transform.position, player.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                target = player.transform;
+            }
+        }
+    }
+
     // 物理挙動を一定に保つため、FixedUpdateで速度を維持
     private void FixedUpdate()
     {
@@ -230,6 +278,32 @@ public class MagicProjectile : MonoBehaviour
             {
                 rb.linearVelocity = rb.linearVelocity.normalized * currentSpeed;
             }
+        }
+
+        if (photonView.IsMine && !isDestroyed && target != null)
+        {
+            if (Time.time < homingActivationTime)
+            {
+                // 時間が経つまでは何もしない（直進する）
+                return;
+            }
+
+            Vector3 forwardDirection = rb.linearVelocity.normalized;
+            Vector3 directionToTarget = (target.position - rb.position).normalized;
+            float angle = Vector3.Angle(forwardDirection, directionToTarget);
+
+            // ★★★ 角度が閾値を超えたらターゲットを外す ★★★
+            if (angle > maxHomingAngle)
+            {
+                target = null; // ターゲットをnullにして追尾を停止
+                return;        //以降の処理は行わない
+            }
+
+            Vector3 newVelocity = Vector3.RotateTowards(rb.linearVelocity.normalized, directionToTarget, homingStrength * Time.fixedDeltaTime, 0.0f);
+            rb.linearVelocity = newVelocity * rb.linearVelocity.magnitude;
+
+            // 弾の向きも進行方向に合わせる
+            transform.rotation = Quaternion.LookRotation(rb.linearVelocity);
         }
     }
 

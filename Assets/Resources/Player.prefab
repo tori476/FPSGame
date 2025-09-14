@@ -425,6 +425,7 @@ MonoBehaviour:
   explosionDamage: 15
   lifeStealRatio: 0
   canDash: 0
+  hasHomingProjectiles: 0
 --- !u!114 &9130055475757860934
 MonoBehaviour:
   m_ObjectHideFlags: 0
