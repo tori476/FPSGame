@@ -72,6 +72,9 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
     private float dashCooldown = 3.0f;
     private float lastDashTime = -99f;
 
+    // ...
+    public bool hasHomingProjectiles = false;
+
 
     // 二段ジャンプ用の状態変数
     private bool hasDoubleJumped = false;

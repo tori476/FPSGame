@@ -15,7 +15,9 @@ public enum PowerUpType
 
     LifeSteal, // ダメージの一部を吸収
 
-    Dash //ダッシュ
+    Dash, //ダッシュ
+
+    HomingProjectile //追尾弾
     // TODO: ここに新しい能力の種類を追加していく
 }
 

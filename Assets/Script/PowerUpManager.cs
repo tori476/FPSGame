@@ -349,6 +349,9 @@ public class PowerUpManager : MonoBehaviour
             case PowerUpType.Dash:
                 pc.canDash = true;
                 break;
+            case PowerUpType.HomingProjectile:
+                pc.hasHomingProjectiles = true;
+                break;
         }
     }
     #endregion
