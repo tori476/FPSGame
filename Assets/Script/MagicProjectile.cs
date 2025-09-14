@@ -17,12 +17,12 @@ public class MagicProjectile : MonoBehaviour
     private float currentSpeed; // 現在の速度を保持
 
     private Transform target; //追尾相手
-    private float homingStrength = 4f; // 追尾の強さ
-    private float homingSearchRadius = 20f; // 索敵範囲
+    private float homingStrength = 3f; // 追尾の強さ
+    private float homingSearchRadius = 100f; // 索敵範囲
     private float homingActivationTime; // 追尾を開始する時間
     private float homingDelay = 0.1f;   // 追尾開始までの遅延時間（秒）
 
-    private float maxHomingAngle = 90f; // この角度以上ターゲットが離れたら追尾をやめる
+    private float maxHomingAngle = 60f; // この角度以上ターゲットが離れたら追尾をやめる
 
     private GameObject attacker;
     private int finalDamage;
@@ -190,6 +190,12 @@ public class MagicProjectile : MonoBehaviour
             // 弾の向きも反射方向に合わせる
             transform.rotation = Quaternion.LookRotation(reflection);
 
+            if (ownerController != null && ownerController.hasHomingProjectiles)
+            {
+                FindTarget();
+                homingActivationTime = Time.time + homingDelay;
+            }
+
             // デバッグ用
             Debug.Log($"弾が反射しました。法線: {normal}, 新しい方向: {reflection}");
         }
@@ -287,6 +293,7 @@ public class MagicProjectile : MonoBehaviour
                 // 時間が経つまでは何もしない（直進する）
                 return;
             }
+            currentSpeed = currentSpeed / 1;
 
             Vector3 forwardDirection = rb.linearVelocity.normalized;
             Vector3 directionToTarget = (target.position - rb.position).normalized;
@@ -295,7 +302,9 @@ public class MagicProjectile : MonoBehaviour
             // ★★★ 角度が閾値を超えたらターゲットを外す ★★★
             if (angle > maxHomingAngle)
             {
+                NewPlayerController ownerController = attacker.GetComponent<NewPlayerController>();
                 target = null; // ターゲットをnullにして追尾を停止
+                currentSpeed = ownerController.magicSpeed;
                 return;        //以降の処理は行わない
             }
 
