@@ -35,7 +35,6 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
     // ★ クロスヘアの参照を保持するプライベート変数を追加
     private Image crosshairImage;
 
-
     private CharacterController characterController;
     private Vector3 moveDirection = Vector3.zero;
     private float rotationX = 0;
@@ -52,44 +51,33 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
     public int bonusDamage = 0;
 
     [Header("取得した能力")]
-
-    public List<PowerUpType> acquiredPowerUps = new List<PowerUpType>(); //取得したかとある能力のリスト
-    public bool canDoubleJump = false;    // 二段ジャンプがアンロックされたか
-    public bool projectileCanBounce = false; // 弾が反射するか
-
-    // ...
-    public bool hasExplosiveShot = false; // 魔法が爆発するか
-    public float explosionRadius = 3.0f; // 爆発範囲
-    public int explosionDamage = 15;   // 爆発ダメージ
-
-    // ...
-
-    public float lifeStealRatio = 0.3f; // 吸収率 (例: 0.3f なら30%)
-
-    // ...
+    public List<PowerUpType> acquiredPowerUps = new List<PowerUpType>();
+    public bool canDoubleJump = false;
+    public bool projectileCanBounce = false;
+    public bool hasExplosiveShot = false;
+    public float explosionRadius = 3.0f;
+    public int explosionDamage = 15;
+    public float lifeStealRatio = 0.3f;
     public bool canDash = false;
     private float dashSpeed = 25f;
     private float dashDuration = 0.15f;
     private float dashCooldown = 3.0f;
     private float lastDashTime = -99f;
-
-    // ...
     public bool hasHomingProjectiles = false;
-
 
     // 二段ジャンプ用の状態変数
     private bool hasDoubleJumped = false;
 
     // 射撃のクールダウンを追加（重複発射防止）
     private float lastFireTime = 0f;
-    private float fireRate = 0.5f; // 秒間の最大発射間隔
+    private float fireRate = 0.7f;
 
     //  射撃ボタンが押されているかを保持するフラグを追加
     private bool isFiring = false;
 
     [Header("IK設定")]
-    public Transform aimTarget; // インスペクターで IK_Rig/AimTarget を設定
-    public float aimDistance = 10f; // 視線のターゲットをカメラからどれだけ前に置くか
+    public Transform aimTarget;
+    public float aimDistance = 10f;
 
     // Rig Builder コンポーネントへの参照
     private RigBuilder rigBuilder;
@@ -97,23 +85,45 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
     // Rig コンポーネントへの参照（ウェイトを操作するため）
     private Rig ikRig;
 
-
-
     // ネットワーク同期用の変数
     private float networkRotationX = 0f;
     private float networkRotationY = 0f;
 
-    public GameObject firstPersonModel; // インスペクターで一人称モデルを割り当てる
-    public GameObject thirdPersonModel; // インスペクターで三人称モデルを割り当てる
+    [Header("モデル設定")]
+    public GameObject firstPersonModel;
+    public GameObject thirdPersonModel;
 
-    private Animator animator;
+    // ★★★ アニメーター参照 ★★★
+    private Animator firstPersonAnimator;
+    private Animator thirdPersonAnimator; // PhotonAnimatorViewで同期される
 
+    // ★★★ PhotonAnimatorViewへの参照を追加 ★★★
+    private PhotonAnimatorView photonAnimatorView;
 
     void Awake()
     {
         characterController = GetComponent<CharacterController>();
         photonView = GetComponent<PhotonView>();
-        animator = GetComponentInChildren<Animator>(); // Animatorコンポーネントを取得
+
+        // ★★★ PhotonAnimatorViewコンポーネントを取得 ★★★
+        photonAnimatorView = GetComponent<PhotonAnimatorView>();
+
+        // 両方のAnimatorコンポーネントを取得
+        if (firstPersonModel != null)
+            firstPersonAnimator = firstPersonModel.GetComponentInChildren<Animator>();
+
+        if (thirdPersonModel != null)
+        {
+            thirdPersonAnimator = thirdPersonModel.GetComponentInChildren<Animator>();
+
+            // ★★★ PhotonAnimatorViewに三人称Animatorを設定 ★★★
+            if (photonAnimatorView != null && thirdPersonAnimator != null)
+            {
+                // PhotonAnimatorViewのAnimatorを三人称用に設定
+
+                Debug.Log("PhotonAnimatorViewに三人称Animatorを設定しました");
+            }
+        }
 
         // 自分のプレイヤーかどうかを判定
         if (photonView.IsMine)
@@ -130,7 +140,6 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
             }
             else
             {
-                // 見つからなかった場合に警告を出す
                 Debug.LogWarning("タグ 'CrosshairUI' がついたクロスヘアが見つかりません。");
             }
         }
@@ -141,6 +150,59 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
             enabled = false;
         }
 
+        if (photonView.IsMine)
+        {
+            // ★★★ 自分自身のキャラクターの場合 ★★★
+
+            // レイヤーの存在確認と設定
+            int fpViewLayer = LayerMask.NameToLayer("FP_View");
+            int tpViewLayer = LayerMask.NameToLayer("TP_View");
+
+            if (fpViewLayer != -1 && firstPersonModel != null)
+            {
+                SetLayerRecursively(firstPersonModel, fpViewLayer);
+            }
+
+            if (tpViewLayer != -1 && thirdPersonModel != null)
+            {
+                SetLayerRecursively(thirdPersonModel, tpViewLayer);
+            }
+
+            // 自分のカメラの設定を変更する
+            if (playerCamera != null)
+            {
+                // 自分の三人称モデル(TP_View)を描画対象から除外
+                if (tpViewLayer != -1)
+                {
+                    playerCamera.cullingMask &= ~(1 << tpViewLayer);
+                }
+
+                // ★★★ 重要：他のプレイヤーは見えるようにする ★★★
+                // Defaultレイヤーは必ず描画対象に含める（他プレイヤー用）
+                playerCamera.cullingMask |= (1 << LayerMask.NameToLayer("Default"));
+
+                Debug.Log($"自分のカメラ Culling Mask: {playerCamera.cullingMask}");
+            }
+        }
+        else
+        {
+            // ★★★ 他のプレイヤーのキャラクターに対する処理 ★★★
+
+            // 他のプレイヤーはDefaultレイヤーのままにする（シンプルな解決法）
+            // これにより、他プレイヤーは確実に見える
+            SetLayerRecursively(gameObject, LayerMask.NameToLayer("Default"));
+
+            // 他のプレイヤーの一人称モデルやカメラは不要なので、非アクティブにする
+            if (firstPersonModel != null) firstPersonModel.SetActive(false);
+            if (playerCamera != null) playerCamera.gameObject.SetActive(false);
+
+            // 自分以外のキャラクターを自分で操作しないように、関連コンポーネントを無効化
+            var playerInput = GetComponent<UnityEngine.InputSystem.PlayerInput>();
+            if (playerInput != null) playerInput.enabled = false;
+
+            Debug.Log($"他のプレイヤー {gameObject.name} をDefaultレイヤーに設定しました");
+        }
+
         // カーソルロックの初期設定
         if (isCursorLocked)
         {
@@ -148,7 +210,7 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
             Cursor.visible = false;
         }
 
-        // Rig BuilderとRigコンポーネントを取得
+        // Rig Builderとrigコンポーネントを取得
         rigBuilder = GetComponent<RigBuilder>();
 
         // Rig Builderに登録されているRigを取得（今回は1つだけと仮定）
@@ -156,7 +218,6 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             ikRig = rigBuilder.layers[0].rig;
         }
-
 
         // 自分のキャラクターでなければIKを無効にする
         if (!photonView.IsMine)
@@ -170,29 +231,7 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         if (photonView.IsMine)
         {
             ToggleCursor(true);
-
-            if (photonView.IsMine)
-            {
-                // 自分自身のキャラクターの場合
-                // 一人称モデルを表示し、三人称モデルを非表示（または三人称カメラから見えないレイヤーに）
-                SetLayerRecursively(firstPersonModel, LayerMask.NameToLayer("FP_View"));
-                SetLayerRecursively(thirdPersonModel, LayerMask.NameToLayer("TP_View"));
-                // ※三人称モデルは他の人から見える必要があるので、ここでは非表示にしない
-
-                // カメラの設定で三人称モデルが見えないようにする
-                playerCamera.cullingMask &= ~(1 << LayerMask.NameToLayer("TP_View"));
-            }
-            else
-            {
-                // 他のプレイヤーのキャラクターの場合
-                // 一人称モデルを非表示にし、三人称モデルを表示
-                SetLayerRecursively(firstPersonModel, LayerMask.NameToLayer("Default")); // or 非表示
-                firstPersonModel.SetActive(false);
-                SetLayerRecursively(thirdPersonModel, LayerMask.NameToLayer("TP_View"));
-            }
         }
-
-
     }
 
     // 子オブジェクトも含めてレイヤーを再帰的に設定するヘルパー関数
@@ -202,6 +241,7 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         obj.layer = newLayer;
         foreach (Transform child in obj.transform)
         {
+            if (child == null) continue;
             SetLayerRecursively(child.gameObject, newLayer);
         }
     }
@@ -269,12 +309,17 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             moveDirection.y = jumpForce;
             hasDoubleJumped = false; // 地上にいるのでダブルジャンプの状態をリセット
+
+            // ★★★ ジャンプアニメーション ★★★
+            SetAnimatorTrigger("Jump");
         }
         // 空中にいて、ダブルジャンプ能力があり、まだダブルジャンプを使っていない場合
         else if (canDoubleJump && !hasDoubleJumped)
         {
             moveDirection.y = jumpForce; // 再度ジャンプ力を与える
             hasDoubleJumped = true;      // ダブルジャンプを使用したことを記録
+
+            SetAnimatorTrigger("DoubleJump");
         }
     }
 
@@ -290,8 +335,6 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             isFiring = false;
         }
-
-
     }
 
     // 弾の生成位置を計算（カメラに依存しない）
@@ -369,10 +412,23 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
         if (photonView.IsMine)
         {
-            // Animatorに現在の移動速度や状態を渡す
+            // ★★★ アニメーションパラメータの設定 ★★★
             float speed = new Vector2(characterController.velocity.x, characterController.velocity.z).magnitude;
-            animator.SetFloat("Speed", speed);
-            animator.SetBool("IsGrounded", isGrounded);
+
+            // 一人称アニメーター（ローカルのみ）
+            if (firstPersonAnimator != null)
+            {
+                firstPersonAnimator.SetFloat("Speed", speed);
+                firstPersonAnimator.SetBool("IsGrounded", isGrounded);
+            }
+
+            // 三人称アニメーター（PhotonAnimatorViewで自動同期される）
+            if (thirdPersonAnimator != null)
+            {
+                thirdPersonAnimator.SetFloat("Speed", speed);
+                thirdPersonAnimator.SetBool("IsGrounded", isGrounded);
+                // PhotonAnimatorViewが自動的に他のプレイヤーに同期する
+            }
         }
 
         HandleFiring();
@@ -380,10 +436,27 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
 
     private void HandleFiring()
     {
-        // isFiringフラグがtrue、射撃可能状態、かつクールダウンが終わっている場合に実行
+        // isFireingフラグがtrue、射撃可能状態、かつクールダウンが終わっている場合に実行
         if (isFiring && canFire && Time.time - lastFireTime >= fireRate)
         {
             lastFireTime = Time.time;
+
+            // ★★★ 射撃アニメーション ★★★
+            if (photonView.IsMine)
+            {
+                // 一人称アニメーション（ローカルのみ）
+                if (firstPersonAnimator != null)
+                {
+                    firstPersonAnimator.SetTrigger("IsShot");
+                }
+
+                // 三人称アニメーション（PhotonAnimatorViewで自動同期）
+                if (thirdPersonAnimator != null)
+                {
+                    thirdPersonAnimator.SetTrigger("IsShot");
+                    // PhotonAnimatorViewが自動的にトリガーを他のプレイヤーに同期
+                }
+            }
 
             Vector3 spawnPosition = CalculateProjectileSpawnPosition();
             Quaternion spawnRotation = CalculateProjectileSpawnRotation();
@@ -397,6 +470,21 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
+    // ★★★ アニメーション用ヘルパーメソッド ★★★
+    private void SetAnimatorTrigger(string triggerName)
+    {
+        if (!photonView.IsMine) return;
+
+        // 一人称アニメーション（ローカルのみ）
+        if (firstPersonAnimator != null)
+            firstPersonAnimator.SetTrigger(triggerName);
+
+        // 三人称アニメーション（PhotonAnimatorViewで同期）
+        if (thirdPersonAnimator != null)
+            thirdPersonAnimator.SetTrigger(triggerName);
+    }
+
+    // 他の既存メソッドは変更なし...
 
     public void DisableFiringFor(float seconds)
     {
@@ -421,7 +509,7 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         }
     }
 
-    // プレイヤーが破棄されるとき（シーン遷移など）にクロスヘアを非表示にする
+    // プレイヤーが破棄される時（シーン遷移など）にクロスヘアを非表示にする
     private void OnDestroy()
     {
         if (photonView.IsMine && crosshairImage != null)
@@ -469,12 +557,5 @@ public class NewPlayerController : MonoBehaviourPunCallbacks, IPunObservable
         {
             aimTarget.position = playerCamera.transform.position + playerCamera.transform.forward * aimDistance;
         }
-
-        // 例：リロード中など、IKを無効にしたい場合
-        // if (isReloading) {
-        //     ikRig.weight = Mathf.Lerp(ikRig.weight, 0f, Time.deltaTime * 10f); // 滑らかにIKをOFF
-        // } else {
-        //     ikRig.weight = Mathf.Lerp(ikRig.weight, 1f, Time.deltaTime * 10f); // 滑らかにIKをON
-        // }
     }
 }
